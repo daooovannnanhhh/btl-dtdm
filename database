@@ -1,0 +1,206 @@
+-- Tạo database
+CREATE DATABASE IF NOT EXISTS starbucks_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE starbucks_management;
+
+-- Bảng users (người dùng)
+CREATE TABLE users (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    address TEXT,
+    role ENUM('admin', 'customer') DEFAULT 'customer',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Bảng categories (danh mục sản phẩm)
+CREATE TABLE categories (
+    category_id INT PRIMARY KEY AUTO_INCREMENT,
+    category_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    image VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Bảng products (sản phẩm)
+CREATE TABLE products (
+    product_id INT PRIMARY KEY AUTO_INCREMENT,
+    category_id INT NOT NULL,
+    product_name VARCHAR(150) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    image VARCHAR(255),
+    stock INT DEFAULT 0,
+    is_available BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE
+);
+
+-- Bảng orders (đơn hàng)
+CREATE TABLE orders (
+    order_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10, 2) NOT NULL,
+    status ENUM('pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled') DEFAULT 'pending',
+    payment_method ENUM('cod', 'online') DEFAULT 'cod',
+    payment_status ENUM('unpaid', 'paid') DEFAULT 'unpaid',
+    delivery_address TEXT,
+    phone VARCHAR(20),
+    notes TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- Bảng order_items (chi tiết đơn hàng)
+CREATE TABLE order_items (
+    order_item_id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    size ENUM('small', 'medium', 'large') DEFAULT 'medium',
+    notes TEXT,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
+);
+
+-- Bảng cart (giỏ hàng)
+CREATE TABLE cart (
+    cart_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT DEFAULT 1,
+    size ENUM('small', 'medium', 'large') DEFAULT 'medium',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
+);
+
+-- Thêm dữ liệu mẫu
+
+-- Admin account (password: admin123)
+INSERT INTO users (username, email, password, full_name, phone, role) VALUES
+('admin', 'admin@starbucks.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator', '0123456789', 'admin');
+
+-- Customer accounts (password: customer123)
+INSERT INTO users (username, email, password, full_name, phone, address, role) VALUES
+('customer1', 'customer1@gmail.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Nguyễn Văn A', '0987654321', '123 Đường ABC, Quận 1, TP.HCM', 'customer'),
+('customer2', 'customer2@gmail.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Trần Thị B', '0912345678', '456 Đường XYZ, Quận 2, TP.HCM', 'customer');
+
+-- Categories
+INSERT INTO categories (category_name, description) VALUES
+('Coffee', 'Các loại cà phê đặc trưng của Starbucks'),
+('Tea', 'Trà và các loại thức uống từ trà'),
+('Frappuccino', 'Thức uống pha trộn đá xay'),
+('Refreshers', 'Thức uống giải khát'),
+('Bakery', 'Bánh và món ăn nhẹ');
+
+-- Products
+INSERT INTO products (category_id, product_name, description, price, stock, is_available) VALUES
+(1, 'Espresso', 'Cà phê Espresso đậm đà', 45000, 100, TRUE),
+(1, 'Americano', 'Cà phê Americano', 55000, 100, TRUE),
+(1, 'Cappuccino', 'Cà phê Cappuccino với foam sữa', 65000, 100, TRUE),
+(1, 'Latte', 'Cà phê Latte mềm mại', 65000, 100, TRUE),
+(1, 'Caramel Macchiato', 'Cà phê với caramel và vanilla', 75000, 100, TRUE),
+(2, 'Green Tea Latte', 'Trà xanh latte', 70000, 100, TRUE),
+(2, 'Earl Grey Tea', 'Trà Earl Grey', 55000, 100, TRUE),
+(3, 'Java Chip Frappuccino', 'Frappuccino chocolate chip', 85000, 100, TRUE),
+(3, 'Caramel Frappuccino', 'Frappuccino caramel', 85000, 100, TRUE),
+(4, 'Strawberry Refresher', 'Thức uống dâu tây', 75000, 100, TRUE),
+(5, 'Chocolate Croissant', 'Bánh sừng bò chocolate', 45000, 50, TRUE),
+(5, 'Blueberry Muffin', 'Bánh muffin việt quất', 50000, 50, TRUE);
+
+-- Sample orders
+INSERT INTO orders (user_id, total_amount, status, payment_method, delivery_address, phone) VALUES
+(2, 130000, 'completed', 'cod', '123 Đường ABC, Quận 1, TP.HCM', '0987654321'),
+(3, 85000, 'preparing', 'online', '456 Đường XYZ, Quận 2, TP.HCM', '0912345678');
+
+INSERT INTO order_items (order_id, product_id, quantity, price, size) VALUES
+(1, 5, 1, 75000, 'medium'),
+(1, 1, 1, 55000, 'medium'),
+(2, 8, 1, 85000, 'large');
+
+-- Thêm 2 cột mới vào bảng users để lưu reset token
+USE starbucks_management;
+
+ALTER TABLE users 
+ADD COLUMN reset_token VARCHAR(100) NULL,
+ADD COLUMN reset_token_expiry DATETIME NULL;
+
+-- Tạo index cho reset_token để tìm kiếm nhanh hơn
+CREATE INDEX idx_reset_token ON users(reset_token);
+
+-- ===== BẢNG CHI PHÍ NGUYÊN LIỆU =====
+-- Thêm cột chi phí nguyên liệu vào bảng products
+ALTER TABLE products 
+ADD COLUMN material_cost DECIMAL(10,2) DEFAULT 0 COMMENT 'Chi phí nguyên liệu cho 1 sản phẩm';
+
+-- Cập nhật chi phí mẫu (có thể bỏ qua nếu muốn nhập thủ công)
+-- Giả định chi phí nguyên liệu = 40% giá bán
+UPDATE products 
+SET material_cost = price * 0.4 
+WHERE material_cost = 0;
+
+-- ===== VIEW TÍNH LỢI NHUẬN =====
+-- View để tính lợi nhuận cho từng đơn hàng
+CREATE OR REPLACE VIEW order_profit_view AS
+SELECT 
+    o.order_id,
+    o.user_id,
+    o.order_date,
+    o.total_amount as revenue,
+    SUM(oi.quantity * p.material_cost) as total_material_cost,
+    o.total_amount - SUM(oi.quantity * p.material_cost) as profit,
+    ((o.total_amount - SUM(oi.quantity * p.material_cost)) / o.total_amount * 100) as profit_margin
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE o.status = 'completed'
+GROUP BY o.order_id;
+
+-- ===== VIEW BÁO CÁO TỔNG HỢP =====
+-- View báo cáo tổng hợp theo ngày
+CREATE OR REPLACE VIEW daily_profit_report AS
+SELECT 
+    DATE(o.order_date) as report_date,
+    COUNT(DISTINCT o.order_id) as total_orders,
+    SUM(o.total_amount) as total_revenue,
+    SUM(oi.quantity * p.material_cost) as total_material_cost,
+    SUM(o.total_amount) - SUM(oi.quantity * p.material_cost) as total_profit,
+    ((SUM(o.total_amount) - SUM(oi.quantity * p.material_cost)) / SUM(o.total_amount) * 100) as profit_margin
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE o.status = 'completed'
+GROUP BY DATE(o.order_date)
+ORDER BY report_date DESC;
+
+-- ===== QUERY MẪU ĐỂ TEST =====
+-- Test lấy báo cáo lợi nhuận
+SELECT * FROM daily_profit_report 
+WHERE report_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY);
+
+-- Test lợi nhuận từng đơn hàng
+SELECT * FROM order_profit_view 
+ORDER BY order_date DESC 
+LIMIT 10;
+
+CREATE TABLE IF NOT EXISTS payment_settings (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    bank_name VARCHAR(100),
+    account_number VARCHAR(50),
+    account_holder VARCHAR(100),
+    qr_image VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Thêm dữ liệu mặc định
+INSERT INTO payment_settings (bank_name, account_number, account_holder, qr_image) 
+VALUES ('Vietcombank', '1234567890', 'STARBUCKS VIETNAM', 'qr-default.png');
